@@ -1,5 +1,14 @@
+use serde::Deserialize;
 use std::error::Error;
 use tokio::process::Command;
+
+#[derive(Debug, Deserialize)]
+struct TestData {
+    name: String,
+    code: u32,
+    tags: Option<String>,
+    lang: Option<String>,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -20,10 +29,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ])
         .output()
         .await?;
-    println!("{:?}", output);
+
+    if Some(0) != output.status.code() {
+        panic!("{:?}", output);
+    }
 
     let contents = tokio::fs::read("output.json").await?;
-    println!("{:?}", String::from_utf8(contents));
+    for line in String::from_utf8(contents)?.lines() {
+        let d: TestData = serde_json::from_str(line)?;
+        println!("{:?}", d);
+    }
 
     Ok(())
 }
